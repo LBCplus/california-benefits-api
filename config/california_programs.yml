@@ -1,0 +1,362 @@
+# California Benefits Programs — Eligibility Rules
+# Version: 1.0.0 | Last Updated: 2026-04-18 | FPL Year: 2026
+#
+# Every threshold cites its regulatory source. CBOs can verify.
+# Update schedule: FPL (January), SNAP (October), EITC (January),
+#   Section 8 (April), all others (annually or on legislative change).
+
+meta:
+  version: "1.0.0"
+  last_updated: "2026-04-18"
+  maintainer: "EmpathySystem.ai"
+  license: "CC BY 4.0"
+  repository: "https://github.com/LBCplus/california-benefits-api"
+
+fpl_thresholds:
+  year: 2026
+  source: "HHS Federal Register Vol. 91 No. 19, January 2026"
+  source_url: "https://aspe.hhs.gov/topics/poverty-economic-mobility/hhs-poverty-guidelines"
+  guidelines:
+    1: 15650
+    2: 21150
+    3: 26650
+    4: 32150
+    5: 37650
+    6: 43150
+    7: 48650
+    8: 54150
+  per_additional_person: 5500
+
+county_adjustments:
+  general_relief:
+    los_angeles: 336
+    san_francisco: 588
+    san_diego: 346
+    sacramento: 338
+    alameda: 399
+    santa_clara: 399
+    orange: 338
+    riverside: 338
+    san_bernardino: 338
+    fresno: 338
+    kern: 338
+    default: 336
+  calworks_region_1_counties:
+    - los_angeles
+    - san_francisco
+    - san_diego
+    - orange
+    - santa_clara
+    - alameda
+    - san_mateo
+    - contra_costa
+    - marin
+    - santa_cruz
+  calworks_region_1:
+    1: 428
+    2: 714
+    3: 925
+    4: 1100
+    5: 1258
+    6: 1399
+    7: 1536
+    8: 1657
+  calworks_region_2:
+    1: 404
+    2: 665
+    3: 868
+    4: 1034
+    5: 1182
+    6: 1313
+    7: 1440
+    8: 1553
+
+programs:
+  calfresh:
+    name: "CalFresh (SNAP)"
+    description: "Monthly grocery benefits loaded onto an EBT card."
+    category: "food"
+    consent_domain: "financial"
+    max_fpl_pct: 200
+    source: "CDSS ACL 24-01; USDA SNAP FY2026 maximum allotments"
+    source_url: "https://www.cdss.ca.gov/inforesources/calfresh"
+    conditions: []
+    snap_max_by_household:
+      1: 291
+      2: 535
+      3: 766
+      4: 973
+      5: 1155
+      6: 1386
+      7: 1532
+      8: 1751
+    application:
+      url: "https://www.getcalfresh.org"
+      phone: "1-877-847-3663"
+      in_person: "Any county DPSS/social services office"
+    documents_needed:
+      - "Proof of identity"
+      - "Proof of income"
+      - "Proof of California residency"
+    processing_time: "30 days (7 days expedited)"
+    notes: "Expedited if monthly income below $150 or rent exceeds income."
+
+  medi_cal:
+    name: "Medi-Cal"
+    description: "Free health coverage: doctor, hospital, dental, vision, prescriptions."
+    category: "healthcare"
+    consent_domain: "health"
+    max_fpl_pct: 138
+    source: "DHCS MAGI Income Standards; 42 CFR 435.603"
+    source_url: "https://www.dhcs.ca.gov/services/medi-cal"
+    conditions: []
+    application:
+      url: "https://www.coveredca.com"
+      phone: "1-800-300-1506"
+    documents_needed:
+      - "Proof of California residency"
+      - "SSN or immigration documentation"
+      - "Proof of income (if employed)"
+    processing_time: "45 days"
+
+  aca_subsidy:
+    name: "Health Insurance Subsidy (Covered California)"
+    description: "Monthly tax credit reducing health insurance premiums."
+    category: "healthcare"
+    consent_domain: "health"
+    min_fpl_pct: 139
+    max_fpl_pct: 400
+    source: "26 USC 36B; Covered California 2026 plan year"
+    source_url: "https://www.coveredca.com"
+    conditions: []
+    application:
+      url: "https://www.coveredca.com"
+      phone: "1-800-300-1506"
+    documents_needed:
+      - "Apply during Open Enrollment or qualifying life event"
+      - "Proof of income"
+    processing_time: "Coverage begins 1st of next month"
+
+  calworks:
+    name: "CalWORKs (Cash Assistance)"
+    description: "Monthly cash aid for families with children."
+    category: "cash_assistance"
+    consent_domain: "financial"
+    max_fpl_pct: 130
+    source: "CDSS MBSAC Schedule; W&I Code §11452"
+    source_url: "https://www.cdss.ca.gov/calworks"
+    conditions:
+      - requires_dependents
+    application:
+      url: "https://www.cdss.ca.gov/calworks"
+      phone: "County DPSS office"
+    documents_needed:
+      - "Children under 18 in household"
+      - "Proof of income and resources"
+      - "SSNs for all household members"
+      - "Proof of California residency"
+    processing_time: "30-45 days"
+
+  eitc:
+    name: "Earned Income Tax Credit (Federal + California)"
+    description: "Tax refund for working people. CA adds 45% on top of federal."
+    category: "tax_credit"
+    consent_domain: "financial"
+    max_fpl_pct: 300
+    source: "IRS Pub 596 (2025 TY); FTB CalEITC R&TC §17052.1"
+    source_url: "https://www.ftb.ca.gov/file/personal/credits/california-earned-income-tax-credit.html"
+    conditions:
+      - requires_employment
+    application:
+      url: "https://www.ftb.ca.gov/file/personal/credits/california-earned-income-tax-credit.html"
+      phone: "1-800-829-1040 (IRS)"
+    documents_needed:
+      - "File a tax return"
+      - "W-2 or 1099 showing earned income"
+    processing_time: "Refund within 21 days of e-filing"
+    notes: "Free filing at VITA sites."
+
+  wic:
+    name: "WIC (Women, Infants, and Children)"
+    description: "Healthy foods, nutrition education, breastfeeding support."
+    category: "food"
+    consent_domain: "family"
+    max_fpl_pct: 185
+    source: "CDPH WIC Income Guidelines; 7 CFR 246.7"
+    source_url: "https://www.phfewic.org"
+    conditions:
+      - requires_wic_eligible
+    application:
+      url: "https://www.phfewic.org"
+      phone: "1-888-942-9675"
+    documents_needed:
+      - "Pregnant, breastfeeding, postpartum, or child under 5"
+      - "Proof of income"
+      - "California residency"
+    processing_time: "Same-day enrollment"
+    notes: "Auto-eligible if receiving Medi-Cal, CalFresh, or CalWORKs."
+
+  liheap:
+    name: "LIHEAP (Utility Bill Assistance)"
+    description: "One-time payment for heating or cooling utility bills."
+    category: "utilities"
+    consent_domain: "housing"
+    max_fpl_pct: 200
+    source: "CSD LIHEAP State Plan; 42 USC 8624"
+    source_url: "https://www.csd.ca.gov/Pages/LIHEAP.aspx"
+    conditions: []
+    application:
+      url: "https://www.csd.ca.gov/Pages/LIHEAP.aspx"
+      phone: "Local Community Action Agency"
+    documents_needed:
+      - "Proof of utility account"
+      - "Proof of income"
+    processing_time: "2-4 weeks"
+    notes: "Funding limited and seasonal. Apply early (October)."
+
+  care:
+    name: "CARE (Utility Rate Discount)"
+    description: "Ongoing 20% discount on gas and electric bills."
+    category: "utilities"
+    consent_domain: "housing"
+    max_fpl_pct: 200
+    source: "CPUC Decision D.21-06-015; PUC §739.1"
+    source_url: "https://www.cpuc.ca.gov/industries-and-topics/electrical-energy/electric-costs/care-fera-702"
+    conditions: []
+    application:
+      phone: "Contact your utility company"
+    documents_needed:
+      - "Proof of income OR enrollment in qualifying program"
+    processing_time: "1-2 billing cycles"
+
+  housing_voucher:
+    name: "Section 8 Housing Choice Voucher"
+    description: "Rental assistance paying portion of rent to landlord."
+    category: "housing"
+    consent_domain: "housing"
+    max_fpl_pct: 80
+    source: "HUD FY2026 Income Limits; 24 CFR 982"
+    source_url: "https://www.huduser.gov/portal/datasets/il.html"
+    conditions: []
+    application:
+      url: "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"
+      phone: "Local Public Housing Authority"
+    documents_needed:
+      - "Income below 50% AMI"
+      - "Background check"
+      - "Citizenship or eligible immigration status"
+    processing_time: "Waitlist (months to years)"
+
+  free_lunch:
+    name: "Free School Meals"
+    description: "Free breakfast and lunch at school."
+    category: "food"
+    consent_domain: "family"
+    max_fpl_pct: 130
+    source: "USDA FNS Income Eligibility; 7 CFR 245"
+    source_url: "https://www.cde.ca.gov/ds/sh/sn/"
+    conditions:
+      - requires_school_age_children
+    application:
+      url: "https://www.cde.ca.gov/ds/sh/sn/"
+      phone: "Child's school office"
+    documents_needed:
+      - "Application through school"
+      - "Proof of income or CalFresh/CalWORKs certification"
+    processing_time: "10 school days"
+    notes: "CA provides universal free meals at many schools. Check first."
+
+  reduced_lunch:
+    name: "Reduced-Price School Meals"
+    description: "School meals at $0.30 or less."
+    category: "food"
+    consent_domain: "family"
+    min_fpl_pct: 131
+    max_fpl_pct: 185
+    source: "USDA FNS Income Eligibility; 7 CFR 245"
+    source_url: "https://www.cde.ca.gov/ds/sh/sn/"
+    conditions:
+      - requires_school_age_children
+    application:
+      phone: "Child's school office"
+    documents_needed:
+      - "Application through school"
+      - "Proof of income"
+    processing_time: "10 school days"
+
+  california_lifeline:
+    name: "California Lifeline (Phone/Internet Discount)"
+    description: "Discounted phone and internet service."
+    category: "telecommunications"
+    consent_domain: "transportation"
+    max_fpl_pct: 135
+    source: "CPUC General Order 153; FCC 47 CFR 54"
+    source_url: "https://www.californialifeline.com"
+    conditions: []
+    application:
+      url: "https://www.californialifeline.com"
+      phone: "1-866-272-0349"
+    documents_needed:
+      - "Proof of income OR enrollment in qualifying program"
+    processing_time: "7-10 business days"
+
+  childcare_subsidy:
+    name: "Subsidized Childcare"
+    description: "Financial help for childcare while working or in school."
+    category: "childcare"
+    consent_domain: "family"
+    max_fpl_pct: 185
+    source: "CDSS Alternative Payment Program; H&S Code §8220"
+    source_url: "https://rrnetwork.org"
+    conditions:
+      - requires_dependents
+      - requires_young_children
+    application:
+      url: "https://rrnetwork.org"
+      phone: "Local Resource & Referral agency"
+    documents_needed:
+      - "Children under 13"
+      - "Working, in school, or seeking employment"
+      - "Proof of income"
+    processing_time: "Waitlist varies by county"
+
+  ssi_capi:
+    name: "SSI / CAPI (Cash Assistance)"
+    description: "Monthly cash for aged, blind, or disabled with limited income."
+    category: "cash_assistance"
+    consent_domain: "financial"
+    max_fpl_pct: 100
+    source: "SSA Federal Benefit Rate + CA SSP; 42 USC 1382"
+    source_url: "https://www.ssa.gov/ssi"
+    conditions:
+      - requires_ssi_eligible
+    application:
+      url: "https://www.ssa.gov/ssi"
+      phone: "1-800-772-1213"
+    documents_needed:
+      - "Age 65+ OR disability/blindness documentation"
+      - "Resources under $2,000 individual / $3,000 couple"
+      - "Social Security number"
+    processing_time: "3-6 months"
+    notes: "CAPI extends benefits to immigrants ineligible for federal SSI."
+
+  general_relief:
+    name: "General Relief (County Cash Aid)"
+    description: "Last-resort monthly cash. Amount varies by county."
+    category: "cash_assistance"
+    consent_domain: "financial"
+    max_fpl_pct: 100
+    county_specific: true
+    source: "County General Assistance; W&I Code §17000"
+    source_url: "https://dpss.lacounty.gov/en/cash/gr.html"
+    conditions: []
+    application:
+      phone: "County DPSS office"
+      in_person: "County social services office"
+    documents_needed:
+      - "Proof of identity"
+      - "Proof of California residency"
+      - "Proof of income and resources"
+      - "Must apply for all other eligible benefits first"
+    processing_time: "30 days"
+    notes: "County-funded. Amounts and rules vary significantly."
