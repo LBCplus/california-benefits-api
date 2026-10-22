@@ -3,8 +3,8 @@ require "json"
 require "time"
 
 class BenefitsScreening
-  VERSION = "1.0.0"
-  DISCLAIMER = "This screening provides estimates only. Actual eligibility " \
+  VERSION = "2.0.0"
+  DISCLAIMER = "This screening provides estimates only, not determinations. Actual eligibility " \
     "is determined by the administering agency. This tool does not collect " \
     "or store personally identifiable information."
 
@@ -23,9 +23,7 @@ class BenefitsScreening
                  has_dependents: false, is_pregnant: false,
                  has_disability: false, is_employed: true,
                  dependent_ages: [], housing_status: nil,
-                 immigration_status: "documented",
                  config_path: nil)
-    # ── Input validation ──
     errors = validate_inputs(monthly_income, household_size, dependent_ages)
     raise ValidationError.new(errors) if errors.any?
 
@@ -37,12 +35,10 @@ class BenefitsScreening
     @is_pregnant = is_pregnant
     @has_disability = has_disability
     @is_employed = is_employed
-    @dependent_ages = Array(dependent_ages).map(&:to_i).reject(&:zero?)
+    @dependent_ages = Array(dependent_ages).compact.map(&:to_i)
     @housing_status = housing_status
-    @immigration_status = immigration_status
     @warnings = []
 
-    # ── Load config ──
     config_path ||= File.join(__dir__, "..", "config", "california_programs.yml")
     @config = YAML.load_file(config_path)
     @meta = @config["meta"] || {}
@@ -50,36 +46,38 @@ class BenefitsScreening
     @fpl_guidelines = @fpl_config["guidelines"]
     @fpl_increment = @fpl_config["per_additional_person"]
     @fpl_year = @fpl_config["year"]
-    @county_adjustments = @config["county_adjustments"] || {}
     @programs = @config["programs"]
 
-    # ── FPL staleness check (AMST-7 Q5) ──
     check_fpl_staleness!
 
-    # ── Calculate FPL ──
     @fpl = calculate_fpl
-    @fpl_pct = @annual_income.zero? ? 0 : (@annual_income / @fpl.to_f * 100).round(0)
+    @fpl_exact = @annual_income.zero? ? 0 : (@annual_income / @fpl.to_f * 100).round(6)
+    @fpl_pct = @fpl_exact.round(1)
   end
 
   def eligible_programs
-    @programs.filter_map do |key, config|
-      next unless eligible_for?(key, config)
-      build_program_result(key, config, eligible: true)
+    evaluations.filter_map do |key, config, ev|
+      build_program_result(key, config, ev, eligible: true) if ev[:status] == :eligible
     end
   end
 
   def ineligible_programs
-    @programs.filter_map do |key, config|
-      next if eligible_for?(key, config)
-      next unless worth_showing?(key, config)
-      reason = ineligibility_reason(key, config)
-      build_program_result(key, config, eligible: false).merge(reason: reason)
+    evaluations.filter_map do |key, config, ev|
+      next unless ev[:status] == :ineligible && ev[:show]
+      build_program_result(key, config, ev, eligible: false).merge(reason: ev[:reason])
+    end
+  end
+
+  def not_screened_programs
+    evaluations.filter_map do |key, config, ev|
+      build_not_screened(key, config, ev) if ev[:status] == :not_screened
     end
   end
 
   def screen
     eligible = eligible_programs
     ineligible = ineligible_programs
+    not_screened = not_screened_programs
 
     result = {
       api_version: VERSION,
@@ -90,17 +88,17 @@ class BenefitsScreening
       fpl_percentage: @fpl_pct,
       household_size: @household_size,
       county: @county,
-      programs_screened: @programs.size,
+      programs_screened: @programs.size - not_screened.size,
       eligible_count: eligible.size,
       eligible_programs: eligible,
       ineligible_programs: ineligible,
+      not_screened_programs: not_screened,
       disclaimer: DISCLAIMER
     }
     result[:warnings] = @warnings if @warnings.any?
     result
   end
 
-  # Class-level validation for API controllers
   def self.validate(params)
     errors = []
     errors << "monthly_income is required" if params[:monthly_income].nil?
@@ -163,22 +161,103 @@ class BenefitsScreening
   def calculate_fpl
     size = [@household_size, 1].max
     if size <= 8
-      @fpl_guidelines[size] || @fpl_guidelines[size.to_s] || 15_650
+      @fpl_guidelines[size] || @fpl_guidelines.fetch(size.to_s)
     else
-      base = @fpl_guidelines[8] || @fpl_guidelines["8"] || 54_150
+      base = @fpl_guidelines[8] || @fpl_guidelines.fetch("8")
       base + ((size - 8) * @fpl_increment)
     end
   end
 
-  def eligible_for?(key, config)
+  def evaluations
+    @evaluations ||= @programs.map { |key, config| [key, config, evaluate(key, config)] }
+  end
+
+  def evaluate(key, config)
+    return not_screened(config["unverified_reason"]) if config["verified"] == false
+
+    check = config["income_limit"] ? dollar_check(config["income_limit"]) : fpl_check(key, config)
+    return check unless check[:status] == :eligible
+
+    failed = (config["conditions"] || []).reject { |c| meets_condition?(c) }
+    return check if failed.empty?
+
+    check.merge(status: :ineligible, show: true,
+                reason: "Requires: #{failed.map { |c| humanize_condition(c) }.join(', ')}")
+  end
+
+  def not_screened(reason)
+    { status: :not_screened, reason: reason || "No verified income limit is loaded for this household." }
+  end
+
+  def fpl_check(key, config)
     max = config["max_fpl_pct"]
-    return false if max && @fpl_pct > max
+    above = config["above_fpl_pct"]
+    limit = { max_fpl_pct: max, above_fpl_pct: above }.compact
 
-    min = config["min_fpl_pct"]
-    return false if min && @fpl_pct < min
+    if max && @fpl_exact > max
+      overage = (@fpl_exact - max).round(1)
+      return { status: :ineligible, limit: limit, show: @fpl_exact <= max * 1.25,
+               reason: "Income exceeds #{max}% FPL limit by #{overage} percentage points (yours: #{@fpl_pct}%)" }
+    end
 
-    conditions = config["conditions"] || []
-    conditions.all? { |c| meets_condition?(c) }
+    if above && @fpl_exact <= above
+      alt = suggest_alternative(key)
+      msg = "Income is not above the #{above}% FPL minimum (yours: #{@fpl_pct}%)"
+      msg += ". You may qualify for #{alt}" if alt
+      return { status: :ineligible, limit: limit, show: true, reason: msg }
+    end
+
+    { status: :eligible, limit: limit }
+  end
+
+  def dollar_check(limit)
+    table = limit_table(limit)
+    return not_screened(limit["fallback_reason"]) unless table
+    return not_screened(table["unverified_reason"]) if table["verified"] == false
+
+    size = limit["by"] == "children" ? @dependent_ages.size : @household_size
+    amount = size_amount(table["by_household"], table["per_additional_person"], size)
+    return not_screened(limit["fallback_reason"]) unless amount
+
+    amount = amount.round(2)
+    period = limit["period"]
+    earned_disregard = @is_employed ? limit["earned_income_disregard"].to_i : 0
+    income = ((period == "monthly" ? @monthly_income : @annual_income) - earned_disregard).round(2)
+    shown = { income_period: period, max_income: amount, counted_income: income }
+
+    above = table["above"] && size_amount(table["above"]["by_household"], table["above"]["per_additional_person"], size)
+    if above && income <= above
+      return { status: :ineligible, limit: shown.merge(above_income: above), show: false,
+               reason: "Income $#{money(income)} is not above the $#{money(above)} #{period} minimum" }
+    end
+
+    over = limit["exclusive"] ? income >= amount : income > amount
+    return { status: :eligible, limit: shown, amount: amount } unless over
+
+    { status: :ineligible, limit: shown, show: income <= amount * 1.25,
+      reason: "Income $#{money(income)} #{limit['exclusive'] ? 'is not under' : 'exceeds'} the $#{money(amount)} #{period} limit" }
+  end
+
+  def limit_table(limit)
+    return limit unless limit["tables"]
+    name = table_name(limit)
+    name && limit["tables"][name]
+  end
+
+  def table_name(limit)
+    return (@household_size - @dependent_ages.size >= 2 ? "married_joint" : "single") if limit["by"] == "children"
+    return unless @county
+    limit.dig("county_tables", @county) || (@county if limit["tables"].key?(@county)) || limit["default_table"]
+  end
+
+  def size_amount(by, per, size)
+    max = by.keys.max
+    return by[size] if size <= max
+    per && by[max] + (size - max) * per
+  end
+
+  def money(amount)
+    format("%.2f", amount).sub(/\.00\z/, "")
   end
 
   def meets_condition?(condition)
@@ -204,40 +283,10 @@ class BenefitsScreening
     end
   end
 
-  # Show ineligible programs that are close to threshold or failed on conditions only
-  def worth_showing?(key, config)
-    max = config["max_fpl_pct"]
-    return true if max && @fpl_pct <= (max * 1.25) # Within 25% of threshold
-
-    conditions = config["conditions"] || []
-    fpl_ok = max.nil? || @fpl_pct <= max
-    fpl_ok && conditions.any? { |c| !meets_condition?(c) }
-  end
-
-  def ineligibility_reason(key, config)
-    max = config["max_fpl_pct"]
-    if max && @fpl_pct > max
-      overage = @fpl_pct - max
-      return "Income exceeds #{max}% FPL limit by #{overage} percentage points (yours: #{@fpl_pct}%)"
-    end
-
-    min = config["min_fpl_pct"]
-    if min && @fpl_pct < min
-      alt = suggest_alternative(key)
-      msg = "Income below #{min}% FPL floor (yours: #{@fpl_pct}%)"
-      msg += ". You may qualify for #{alt}" if alt
-      return msg
-    end
-
-    conditions = config["conditions"] || []
-    failed = conditions.reject { |c| meets_condition?(c) }
-    "Requires: #{failed.map { |c| humanize_condition(c) }.join(', ')}" if failed.any?
-  end
-
   def suggest_alternative(key)
     case key
-    when "aca_subsidy" then "Medi-Cal (free coverage below 138% FPL)"
-    when "reduced_lunch" then "Free School Meals (below 130% FPL)"
+    when "aca_subsidy" then "Medi-Cal (free coverage at or below 138% FPL)"
+    when "reduced_lunch" then "Free School Meals (at or below 130% FPL)"
     end
   end
 
@@ -255,7 +304,7 @@ class BenefitsScreening
     end
   end
 
-  def build_program_result(key, config, eligible:)
+  def build_program_result(key, config, ev, eligible:)
     result = {
       program_id: key,
       name: config["name"],
@@ -263,130 +312,82 @@ class BenefitsScreening
       category: config["category"],
       consent_domain: config["consent_domain"],
       eligible: eligible,
-      estimated_value: calculate_value(key, config),
-      income_limit: build_income_limit(config),
+      income_limit: { your_fpl_pct: @fpl_pct, fpl_source: @fpl_config["source"] }.merge(ev[:limit]),
       how_to_apply: config["application"],
       documents_needed: config["documents_needed"],
       processing_time: config["processing_time"],
       source: config["source"],
       source_url: config["source_url"]
     }
+    result[:estimated_value] = calculate_value(key, config, ev) if eligible
     result[:notes] = config["notes"] if config["notes"]
     result.compact
   end
 
-  def build_income_limit(config)
-    limit = {}
-    limit[:max_fpl_pct] = config["max_fpl_pct"] if config["max_fpl_pct"]
-    limit[:min_fpl_pct] = config["min_fpl_pct"] if config["min_fpl_pct"]
-    limit[:your_fpl_pct] = @fpl_pct
-    limit[:fpl_source] = @fpl_config["source"]
-    limit
+  def build_not_screened(key, config, ev)
+    {
+      program_id: key,
+      name: config["name"],
+      category: config["category"],
+      consent_domain: config["consent_domain"],
+      reason: ev[:reason],
+      how_to_apply: config["application"],
+      source: config["source"],
+      source_url: config["source_url"]
+    }.compact
   end
 
-  # ── Value Calculations ──
-
-  def calculate_value(key, config)
-    case key
-    when "calfresh"      then calculate_snap(config)
-    when "medi_cal"      then { description: "Full coverage — no premium", annual_estimate: 7200 }
-    when "aca_subsidy"   then calculate_aca
-    when "calworks"      then calculate_calworks
-    when "eitc"          then calculate_eitc
-    when "wic"           then { description: "Monthly food package", monthly_estimate: 90 }
-    when "liheap"        then { description: "$200-$1,000 one-time payment" }
-    when "care"          then { description: "20% discount on gas and electric", monthly_estimate: 40 }
-    when "housing_voucher" then { description: "Pays difference between 30% of income and Fair Market Rent" }
-    when "free_lunch"    then { description: "Free breakfast and lunch", annual_estimate: 2500 }
-    when "reduced_lunch" then { description: "Meals at $0.30 or less", annual_estimate: 1800 }
-    when "california_lifeline" then { description: "Discounted phone/internet", monthly_estimate: 30 }
-    when "childcare_subsidy" then { description: "$500-$1,500/month (varies by county and age)" }
-    when "ssi_capi"      then { description: "Up to $1,183/month individual", monthly_max: 1183 }
-    when "general_relief" then calculate_general_relief
-    else
-      { description: "Varies — contact program" }
+  def calculate_value(key, config, ev)
+    value = case key
+    when "calfresh" then calculate_snap(config)
+    when "aca_subsidy" then calculate_aca(config)
+    when "calworks" then calculate_calworks(config)
+    when "eitc" then calculate_eitc(config)
+    when "ssi_capi" then { monthly_max: ev[:amount], unit: "$/month maximum SSI plus State Supplementary Payment" }
+    when "general_relief" then { monthly: ev[:amount], unit: "$/month maximum grant (#{title(@county)} County)" }
+    else (config["estimated_value"] || { description: "Varies — contact program" }).transform_keys(&:to_sym)
     end
+    value.merge(source: config["estimate_source"] || config["source"],
+                source_url: config["estimate_source_url"] || config["source_url"])
+  end
+
+  def title(name)
+    name.split("_").map(&:capitalize).join(" ")
   end
 
   def calculate_snap(config)
-    max_benefits = config["snap_max_by_household"] || {}
-    max = max_benefits[[@household_size, max_benefits.keys.map(&:to_i).max || 8].min] || 291
-    net_income = [@monthly_income - 200, 0].max
-    benefit = max - (net_income * 0.3)
-    monthly = [benefit.round, 0].max
+    max = size_amount(config["snap_max_by_household"], config["snap_per_additional_person"], @household_size)
+    max = [max, config["snap_max_allotment_18_plus"]].min
+    net_income = [@monthly_income - size_amount(config["standard_deduction_by_household"], 0, @household_size), 0].max
+    minimum = @household_size <= config["minimum_benefit_max_household_size"] ? config["minimum_benefit"] : 0
+    monthly = [(max - net_income * 0.3).round, minimum].max
     { monthly: monthly, annual: monthly * 12, unit: "$/month on EBT card" }
   end
 
-  def calculate_aca
-    monthly = case @fpl_pct
-    when 139..200 then 400
-    when 201..250 then 300
-    when 251..300 then 200
-    when 301..400 then 100
-    else 0
-    end
-    { monthly: monthly, annual: monthly * 12, unit: "$/month premium reduction" }
+  def calculate_aca(config)
+    plan_year = @fpl_year + 1
+    band = config.dig("applicable_percentages", plan_year)&.select { |b| @fpl_exact >= b["from_fpl_pct"] }&.last
+    value = { plan_year: plan_year, description: "Credit = benchmark plan premium minus the share of income shown" }
+    band ? value.merge(share_of_income_pct: { low: band["initial"], high: band["final"] }) : value
   end
 
-  def calculate_calworks
-    region_1_counties = @county_adjustments["calworks_region_1_counties"] || []
-    table = if @county && region_1_counties.include?(@county)
-      @county_adjustments["calworks_region_1"] || {}
-    else
-      @county_adjustments["calworks_region_2"] || {}
-    end
-
-    amount = table[[@household_size, table.keys.map(&:to_i).max || 8].min]
-    if amount
-      region = region_1_counties.include?(@county) ? "Region 1" : "Region 2"
-      { monthly: amount, unit: "$/month (#{region})" }
-    else
-      { description: "Varies by county and household size" }
-    end
+  def calculate_calworks(config)
+    region = table_name(config["income_limit"])
+    payments = config["max_aid_payment"][region]
+    {
+      monthly: size_amount(payments["non_exempt"], 0, @household_size),
+      exempt_monthly: size_amount(payments["exempt"], 0, @household_size),
+      unit: "$/month maximum aid payment, non-exempt (#{region.tr('_', ' ').capitalize})"
+    }
   end
 
-  def calculate_eitc
-    federal = calculate_federal_eitc
-    state = (federal * 0.45).round
-    { annual: federal + state, federal: federal, california: state, unit: "$/year tax refund" }
-  end
-
-  def calculate_federal_eitc
-    children = @dependent_ages.size
-    case children
-    when 0
-      @annual_income < 10_000 ? 600 : 300
-    when 1
-      case @annual_income
-      when 0..20_000 then 3_995
-      when 20_001..35_000 then 2_500
-      when 35_001..46_000 then 1_000
-      else 0
-      end
-    when 2
-      case @annual_income
-      when 0..20_000 then 6_604
-      when 20_001..40_000 then 4_500
-      when 40_001..52_000 then 1_500
-      else 0
-      end
-    else # 3+
-      case @annual_income
-      when 0..20_000 then 7_430
-      when 20_001..40_000 then 5_000
-      when 40_001..55_000 then 2_000
-      else 0
-      end
-    end
-  end
-
-  def calculate_general_relief
-    gr_amounts = @county_adjustments["general_relief"] || {}
-    amount = if @county && gr_amounts[@county]
-      gr_amounts[@county]
-    else
-      gr_amounts["default"] || 336
-    end
-    { monthly: amount, unit: "$/month (#{(@county || 'default').gsub('_', ' ').capitalize} County)" }
+  def calculate_eitc(config)
+    children = [@dependent_ages.size, 3].min
+    california = config["california"]
+    {
+      federal_max: config["federal_max_credit"][children],
+      california_max: @annual_income < california["max_earned_income"] ? california["max_credit"][children] : 0,
+      unit: "up to $/year; federal is tax year #{config['federal_tax_year']}, California is tax year #{california['tax_year']}"
+    }
   end
 end

@@ -1,75 +1,36 @@
 # California Benefits Programs — Eligibility Rules
-# Version: 1.0.0 | Last Updated: 2026-04-18 | FPL Year: 2026
+# Version: 2.0.0 | Last Updated: 2026-10-21 | FPL Year: 2026
 #
-# Every threshold cites its regulatory source. CBOs can verify.
-# Update schedule: FPL (January), SNAP (October), EITC (January),
-#   Section 8 (April), all others (annually or on legislative change).
+# Every threshold cites its source and effective dates. CBOs can verify.
+# A program or table marked verified: false is never screened: the engine
+#   answers "not screened" with the stated reason and uses no number from it.
+# Update schedule: poverty guidelines (mid-January), SSI and CalEITC (January),
+#   WIC and school meals (July 1), CalWORKs MBSAC (July 1) and MAP (October 1),
+#   CARE, FERA and California LifeLine (June 1), child care ceilings (July 1),
+#   CalFresh/SNAP (October 1), LIHEAP (October), HUD Section 8 income limits
+#   (spring; FY2026 took effect May 1, 2026), all others on legislative change.
 
 meta:
-  version: "1.0.0"
-  last_updated: "2026-04-18"
+  version: "2.0.0"
+  last_updated: "2026-10-21"
   maintainer: "EmpathySystem.ai"
   license: "CC BY 4.0"
   repository: "https://github.com/LBCplus/california-benefits-api"
 
 fpl_thresholds:
   year: 2026
-  source: "HHS Federal Register Vol. 91 No. 19, January 2026"
-  source_url: "https://aspe.hhs.gov/topics/poverty-economic-mobility/hhs-poverty-guidelines"
+  source: "HHS, Annual Update of the HHS Poverty Guidelines, 91 FR 1797 (Vol. 91, No. 10, January 15, 2026), effective January 13, 2026"
+  source_url: "https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines"
   guidelines:
-    1: 15650
-    2: 21150
-    3: 26650
-    4: 32150
-    5: 37650
-    6: 43150
-    7: 48650
-    8: 54150
-  per_additional_person: 5500
-
-county_adjustments:
-  general_relief:
-    los_angeles: 336
-    san_francisco: 588
-    san_diego: 346
-    sacramento: 338
-    alameda: 399
-    santa_clara: 399
-    orange: 338
-    riverside: 338
-    san_bernardino: 338
-    fresno: 338
-    kern: 338
-    default: 336
-  calworks_region_1_counties:
-    - los_angeles
-    - san_francisco
-    - san_diego
-    - orange
-    - santa_clara
-    - alameda
-    - san_mateo
-    - contra_costa
-    - marin
-    - santa_cruz
-  calworks_region_1:
-    1: 428
-    2: 714
-    3: 925
-    4: 1100
-    5: 1258
-    6: 1399
-    7: 1536
-    8: 1657
-  calworks_region_2:
-    1: 404
-    2: 665
-    3: 868
-    4: 1034
-    5: 1182
-    6: 1313
-    7: 1440
-    8: 1553
+    1: 15960
+    2: 21640
+    3: 27320
+    4: 33000
+    5: 38680
+    6: 44360
+    7: 50040
+    8: 55720
+  per_additional_person: 5680
 
 programs:
   calfresh:
@@ -78,28 +39,41 @@ programs:
     category: "food"
     consent_domain: "financial"
     max_fpl_pct: 200
-    source: "CDSS ACL 24-01; USDA SNAP FY2026 maximum allotments"
+    source: "CDSS CalFresh Modified Categorical Eligibility fact sheet (gross income at or below 200% FPL); USDA FNS SNAP FY2027 maximum allotments and deductions, October 1, 2026 to September 30, 2027"
     source_url: "https://www.cdss.ca.gov/inforesources/calfresh"
+    estimate_source: "USDA FNS, SNAP FY2027 Maximum Allotments and Deductions, Tables 1 and 2 (48 States and D.C.); estimate uses the standard deduction only, not shelter or other deductions"
+    estimate_source_url: "https://www.fns.usda.gov/sites/default/files/resource-files/snap-fy27maximumAllotments-deductions.pdf"
     conditions: []
     snap_max_by_household:
-      1: 291
-      2: 535
-      3: 766
-      4: 973
-      5: 1155
-      6: 1386
-      7: 1532
-      8: 1751
+      1: 306
+      2: 562
+      3: 808
+      4: 1023
+      5: 1217
+      6: 1463
+      7: 1616
+      8: 1841
+    snap_per_additional_person: 225
+    snap_max_allotment_18_plus: 3887
+    standard_deduction_by_household:
+      1: 217
+      2: 217
+      3: 217
+      4: 229
+      5: 268
+      6: 308
+    minimum_benefit: 25
+    minimum_benefit_max_household_size: 2
     application:
-      url: "https://www.getcalfresh.org"
+      url: "https://benefitscal.com"
       phone: "1-877-847-3663"
       in_person: "Any county DPSS/social services office"
     documents_needed:
       - "Proof of identity"
       - "Proof of income"
       - "Proof of California residency"
-    processing_time: "30 days (7 days expedited)"
-    notes: "Expedited if monthly income below $150 or rent exceeds income."
+    processing_time: "30 calendar days (7 calendar days expedited)"
+    notes: "Entitled to expedited service if gross monthly income is under $150 and liquid resources are not over $100; if a destitute migrant or seasonal farmworker household has liquid resources not over $100; or if combined monthly gross income and liquid resources are less than monthly rent or mortgage plus utilities (7 CFR 273.2(i)(1))."
 
   medi_cal:
     name: "Medi-Cal"
@@ -107,8 +81,10 @@ programs:
     category: "healthcare"
     consent_domain: "health"
     max_fpl_pct: 138
-    source: "DHCS MAGI Income Standards; 42 CFR 435.603"
+    source: "CMS Medicaid expansion adult group, 138% FPL (healthcare.gov); DHCS MAGI income standards"
     source_url: "https://www.dhcs.ca.gov/services/medi-cal"
+    estimated_value:
+      description: "Comprehensive health coverage"
     conditions: []
     application:
       url: "https://www.coveredca.com"
@@ -117,17 +93,59 @@ programs:
       - "Proof of California residency"
       - "SSN or immigration documentation"
       - "Proof of income (if employed)"
-    processing_time: "45 days"
+    notes: "Children and pregnant people have higher California income limits that this tool does not model."
 
   aca_subsidy:
     name: "Health Insurance Subsidy (Covered California)"
     description: "Monthly tax credit reducing health insurance premiums."
     category: "healthcare"
     consent_domain: "health"
-    min_fpl_pct: 139
+    above_fpl_pct: 138
     max_fpl_pct: 400
-    source: "26 USC 36B; Covered California 2026 plan year"
-    source_url: "https://www.coveredca.com"
+    source: "26 USC 36B; IRS Rev. Proc. 2025-25 and Rev. Proc. 2026-26 Sec. 3.01; Covered California. Enhanced credits ended December 31, 2025, so the 400% FPL limit applies for 2026 and 2027."
+    source_url: "https://www.coveredca.com/important-changes/"
+    fpl_basis: "Plan year N uses the poverty guidelines published in year N-1 (IRS Q&A A7): plan year 2026 uses the 2025 table, plan year 2027 uses the 2026 table. This tool applies the plan year after its FPL year."
+    estimate_source: "IRS Rev. Proc. 2025-25 Sec. 3.01 (plan year 2026) and Rev. Proc. 2026-26 Sec. 3.01 (plan year 2027), applicable percentage tables"
+    estimate_source_url: "https://www.irs.gov/pub/irs-drop/rp-26-26.pdf"
+    applicable_percentages:
+      2026:
+        - from_fpl_pct: 0
+          initial: 2.10
+          final: 2.10
+        - from_fpl_pct: 133
+          initial: 3.14
+          final: 4.19
+        - from_fpl_pct: 150
+          initial: 4.19
+          final: 6.60
+        - from_fpl_pct: 200
+          initial: 6.60
+          final: 8.44
+        - from_fpl_pct: 250
+          initial: 8.44
+          final: 9.96
+        - from_fpl_pct: 300
+          initial: 9.96
+          final: 9.96
+      2027:
+        - from_fpl_pct: 0
+          initial: 2.15
+          final: 2.15
+        - from_fpl_pct: 133
+          initial: 3.23
+          final: 4.30
+        - from_fpl_pct: 150
+          initial: 4.30
+          final: 6.78
+        - from_fpl_pct: 200
+          initial: 6.78
+          final: 8.66
+        - from_fpl_pct: 250
+          initial: 8.66
+          final: 10.22
+        - from_fpl_pct: 300
+          initial: 10.22
+          final: 10.22
     conditions: []
     application:
       url: "https://www.coveredca.com"
@@ -135,18 +153,117 @@ programs:
     documents_needed:
       - "Apply during Open Enrollment or qualifying life event"
       - "Proof of income"
-    processing_time: "Coverage begins 1st of next month"
+    notes: "The credit is the benchmark plan premium minus the share of income shown; the benchmark premium is not modeled, so no dollar amount is given."
 
   calworks:
     name: "CalWORKs (Cash Assistance)"
     description: "Monthly cash aid for families with children."
     category: "cash_assistance"
     consent_domain: "financial"
-    max_fpl_pct: 130
-    source: "CDSS MBSAC Schedule; W&I Code §11452"
-    source_url: "https://www.cdss.ca.gov/calworks"
+    source: "County MBSAC schedule effective July 1, 2026 (applicant income test, after a $450 earned income disregard per employed person) and maximum aid payment (MAP) effective October 1, 2026 (AB 152 of 2026); LA County DPSS ePolicy 44-212 and 44-315; Santa Clara County CalWORKs charts"
+    source_url: "https://my.dpss.lacounty.gov/public/en/home/epolicy/program/calworks/payments/calworks-maximum-aid-payment.html"
+    estimate_source: "LA County DPSS ePolicy 44-315, MAP effective October 1, 2026; the non-exempt amount is shown, the exempt amount applies only when each adult caretaker receives SSI/SSP, IHSS, SDI, temporary workers' compensation or TDI"
+    estimate_source_url: "https://my.dpss.lacounty.gov/public/en/home/epolicy/program/calworks/payments/calworks-maximum-aid-payment.html"
     conditions:
       - requires_dependents
+    income_limit:
+      period: monthly
+      exclusive: true
+      earned_income_disregard: 450
+      fallback_reason: "CalWORKs income limits depend on the county's region. Give a county to screen."
+      default_table: region_2
+      county_tables:
+        alameda: region_1
+        contra_costa: region_1
+        los_angeles: region_1
+        marin: region_1
+        monterey: region_1
+        napa: region_1
+        orange: region_1
+        san_diego: region_1
+        san_francisco: region_1
+        san_luis_obispo: region_1
+        san_mateo: region_1
+        santa_barbara: region_1
+        santa_clara: region_1
+        santa_cruz: region_1
+        solano: region_1
+        sonoma: region_1
+        ventura: region_1
+      tables:
+        region_1:
+          by_household:
+            1: 963
+            2: 1581
+            3: 1960
+            4: 2325
+            5: 2653
+            6: 2983
+            7: 3280
+            8: 3569
+            9: 3872
+            10: 4202
+          per_additional_person: 0
+        region_2:
+          by_household:
+            1: 914
+            2: 1501
+            3: 1859
+            4: 2211
+            5: 2529
+            6: 2839
+            7: 3110
+            8: 3397
+            9: 3671
+            10: 3997
+          per_additional_person: 0
+    max_aid_payment:
+      region_1:
+        non_exempt:
+          1: 747
+          2: 947
+          3: 1196
+          4: 1441
+          5: 1689
+          6: 1936
+          7: 2184
+          8: 2432
+          9: 2678
+          10: 2928
+        exempt:
+          1: 824
+          2: 1058
+          3: 1338
+          4: 1607
+          5: 1883
+          6: 2161
+          7: 2438
+          8: 2717
+          9: 2992
+          10: 3273
+      region_2:
+        non_exempt:
+          1: 708
+          2: 900
+          3: 1135
+          4: 1370
+          5: 1606
+          6: 1841
+          7: 2076
+          8: 2312
+          9: 2546
+          10: 2780
+        exempt:
+          1: 784
+          2: 1005
+          3: 1270
+          4: 1525
+          5: 1790
+          6: 2054
+          7: 2315
+          8: 2583
+          9: 2841
+          10: 3109
     application:
       url: "https://www.cdss.ca.gov/calworks"
       phone: "County DPSS office"
@@ -155,26 +272,58 @@ programs:
       - "Proof of income and resources"
       - "SSNs for all household members"
       - "Proof of California residency"
-    processing_time: "30-45 days"
+    notes: "The applicant income test takes one $450 disregard when the household has earned income; households with more than one worker may have more. Recipients are tested against the maximum aid payment after a $600 disregard plus 50% of remaining earnings, which this tool does not model."
 
   eitc:
     name: "Earned Income Tax Credit (Federal + California)"
-    description: "Tax refund for working people. CA adds 45% on top of federal."
+    description: "Tax refund for working people. California has its own CalEITC schedule."
     category: "tax_credit"
     consent_domain: "financial"
-    max_fpl_pct: 300
-    source: "IRS Pub 596 (2025 TY); FTB CalEITC R&TC §17052.1"
-    source_url: "https://www.ftb.ca.gov/file/personal/credits/california-earned-income-tax-credit.html"
+    source: "IRS Rev. Proc. 2025-32 Sec. 3.06 (tax year 2026 federal maximum credits and completed phaseout amounts); FTB CalEITC tax year 2025 maximum income and credit amounts"
+    source_url: "https://www.ftb.ca.gov/file/personal/credits/caleitc/eligibility-and-credit-information.html"
+    estimate_source: "Federal: IRS Rev. Proc. 2025-32 Sec. 3.06, tax year 2026. California: FTB CalEITC, tax year 2025 (tax year 2026 amounts not yet published)"
+    estimate_source_url: "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf"
     conditions:
       - requires_employment
+    income_limit:
+      period: annual
+      exclusive: true
+      by: children
+      tables:
+        single:
+          by_household:
+            0: 19540
+            1: 51593
+            2: 58629
+            3: 62974
+          per_additional_person: 0
+        married_joint:
+          by_household:
+            0: 26820
+            1: 58863
+            2: 65899
+            3: 70244
+          per_additional_person: 0
+    federal_tax_year: 2026
+    federal_max_credit:
+      0: 664
+      1: 4427
+      2: 7316
+      3: 8231
+    california:
+      tax_year: 2025
+      max_earned_income: 32900
+      max_credit:
+        0: 302
+        1: 2016
+        2: 3339
+        3: 3756
     application:
-      url: "https://www.ftb.ca.gov/file/personal/credits/california-earned-income-tax-credit.html"
-      phone: "1-800-829-1040 (IRS)"
+      url: "https://www.ftb.ca.gov/file/personal/credits/caleitc/eligibility-and-credit-information.html"
     documents_needed:
       - "File a tax return"
       - "W-2 or 1099 showing earned income"
-    processing_time: "Refund within 21 days of e-filing"
-    notes: "Free filing at VITA sites."
+    notes: "Free filing at VITA sites. Households with two or more adults are screened against the married-filing-jointly limit and all others against the single or head of household limit. Investment income (limit $12,200) is not modeled. Amounts shown are maximums, not the credit at your income."
 
   wic:
     name: "WIC (Women, Infants, and Children)"
@@ -182,67 +331,173 @@ programs:
     category: "food"
     consent_domain: "family"
     max_fpl_pct: 185
-    source: "CDPH WIC Income Guidelines; 7 CFR 246.7"
-    source_url: "https://www.phfewic.org"
+    source: "USDA FNS WIC income eligibility guidelines, 91 FR 23050 (April 29, 2026), effective July 1, 2026 to June 30, 2027; California WPPM 980-1060 effective May 1, 2026"
+    source_url: "https://myfamily.wic.ca.gov/Home/AmIEligible"
+    estimated_value:
+      description: "Monthly food package"
     conditions:
       - requires_wic_eligible
     application:
-      url: "https://www.phfewic.org"
-      phone: "1-888-942-9675"
+      url: "https://myfamily.wic.ca.gov"
     documents_needed:
       - "Pregnant, breastfeeding, postpartum, or child under 5"
       - "Proof of income"
       - "California residency"
-    processing_time: "Same-day enrollment"
-    notes: "Auto-eligible if receiving Medi-Cal, CalFresh, or CalWORKs."
+    notes: "Receiving Medi-Cal, CalFresh, CalWORKs, or FDPIR is an income-eligibility path (myfamily.wic.ca.gov)."
 
   liheap:
     name: "LIHEAP (Utility Bill Assistance)"
     description: "One-time payment for heating or cooling utility bills."
     category: "utilities"
     consent_domain: "housing"
-    max_fpl_pct: 200
-    source: "CSD LIHEAP State Plan; 42 USC 8624"
-    source_url: "https://www.csd.ca.gov/Pages/LIHEAP.aspx"
+    source: "California CSD 2026 LIHEAP Income Eligibility table (60% of State Median Income), federal fiscal year 2026 State Plan Sec. 2.1"
+    source_url: "https://www.csd.ca.gov/energybills"
+    estimated_value:
+      description: "Help paying heating or cooling bills"
     conditions: []
+    income_limit:
+      period: monthly
+      by_household:
+        1: 3331.66
+        2: 4356.83
+        3: 5382.00
+        4: 6407.16
+        5: 7432.25
+        6: 8457.41
+        7: 8649.66
+        8: 8841.83
+        9: 9034.08
+        10: 9226.25
+      per_additional_person: 192.21
     application:
-      url: "https://www.csd.ca.gov/Pages/LIHEAP.aspx"
+      url: "https://www.csd.ca.gov/energybills"
       phone: "Local Community Action Agency"
     documents_needed:
       - "Proof of utility account"
       - "Proof of income"
-    processing_time: "2-4 weeks"
-    notes: "Funding limited and seasonal. Apply early (October)."
+    notes: "Funding is limited and seasonal. Limits are the federal fiscal year 2026 table; the FFY2027 table was not yet published. Households with a member receiving CalFresh or CalWORKs are eligible regardless of income. Whether CSD counts gross or net income was not confirmed; this tool compares gross income."
 
   care:
     name: "CARE (Utility Rate Discount)"
-    description: "Ongoing 20% discount on gas and electric bills."
+    description: "30-35% discount on the electric bill and 20% on natural gas, plus a reduced base services charge."
     category: "utilities"
     consent_domain: "housing"
-    max_fpl_pct: 200
-    source: "CPUC Decision D.21-06-015; PUC §739.1"
-    source_url: "https://www.cpuc.ca.gov/industries-and-topics/electrical-energy/electric-costs/care-fera-702"
+    source: "CPUC CARE income eligibility guidelines (200% FPL; one- and two-person households share one limit), June 1, 2026 to May 31, 2027; Public Utilities Code Section 739.1"
+    source_url: "https://www.cpuc.ca.gov/industries-and-topics/electrical-energy/electric-costs/care-fera-program"
+    estimated_value:
+      description: "30-35% discount on the electric bill and 20% on natural gas"
     conditions: []
+    income_limit:
+      period: annual
+      by_household:
+        1: 43280
+        2: 43280
+        3: 54640
+        4: 66000
+        5: 77360
+        6: 88720
+        7: 100080
+        8: 111440
+      per_additional_person: 11360
     application:
       phone: "Contact your utility company"
     documents_needed:
       - "Proof of income OR enrollment in qualifying program"
-    processing_time: "1-2 billing cycles"
+
+  fera:
+    name: "FERA (Family Electric Rate Assistance)"
+    description: "18% discount on the electric bill for households just above the CARE limit."
+    category: "utilities"
+    consent_domain: "housing"
+    source: "CPUC FERA income guidelines (above the CARE limit up to 250% FPL), June 1, 2026 to May 31, 2027"
+    source_url: "https://www.cpuc.ca.gov/industries-and-topics/electrical-energy/electric-costs/care-fera-program"
+    estimated_value:
+      description: "18% discount on the electric bill"
+    conditions: []
+    income_limit:
+      period: annual
+      by_household:
+        1: 54100
+        2: 54100
+        3: 68300
+        4: 82500
+        5: 96700
+        6: 110900
+        7: 125100
+        8: 139300
+      per_additional_person: 14200
+      above:
+        by_household:
+          1: 43280
+          2: 43280
+          3: 54640
+          4: 66000
+          5: 77360
+          6: 88720
+          7: 100080
+          8: 111440
+        per_additional_person: 11360
+    application:
+      phone: "Contact your utility company"
+    documents_needed:
+      - "Proof of income OR enrollment in qualifying program"
+    notes: "Only some utilities offer FERA. The CPUC page names Southern California Edison and San Diego Gas & Electric first; the full list was not read."
 
   housing_voucher:
     name: "Section 8 Housing Choice Voucher"
     description: "Rental assistance paying portion of rent to landlord."
     category: "housing"
     consent_domain: "housing"
-    max_fpl_pct: 80
-    source: "HUD FY2026 Income Limits; 24 CFR 982"
+    source: "HUD FY2026 very low income limits (50% of area median income), effective May 1, 2026 (Notice PDR-2026-02); 24 CFR 982.201"
     source_url: "https://www.huduser.gov/portal/datasets/il.html"
+    estimated_value:
+      description: "Rental assistance paid to your landlord"
     conditions: []
+    income_limit:
+      period: annual
+      fallback_reason: "HUD income limits are loaded only for the Los Angeles area (Los Angeles County), the San Francisco area (Marin, San Francisco and San Mateo counties) and the San Diego area (San Diego County), for households of up to 8. Look up your area's very low income limit at https://www.huduser.gov/portal/datasets/il.html and ask your local housing authority."
+      county_tables:
+        los_angeles: los_angeles_area
+        marin: san_francisco_area
+        san_francisco: san_francisco_area
+        san_mateo: san_francisco_area
+        san_diego: san_diego_area
+      tables:
+        los_angeles_area:
+          by_household:
+            1: 58300
+            2: 66650
+            3: 74950
+            4: 83300
+            5: 89950
+            6: 96600
+            7: 103250
+            8: 110000
+        san_francisco_area:
+          by_household:
+            1: 73550
+            2: 84050
+            3: 94550
+            4: 105050
+            5: 113500
+            6: 121900
+            7: 130300
+            8: 138700
+        san_diego_area:
+          by_household:
+            1: 61250
+            2: 70000
+            3: 78750
+            4: 87450
+            5: 94450
+            6: 101450
+            7: 108450
+            8: 115450
     application:
       url: "https://www.hud.gov/topics/housing_choice_voucher_program_section_8"
       phone: "Local Public Housing Authority"
     documents_needed:
-      - "Income below 50% AMI"
+      - "Income at or below 50% of area median income"
       - "Background check"
       - "Citizenship or eligible immigration status"
     processing_time: "Waitlist (months to years)"
@@ -253,8 +508,10 @@ programs:
     category: "food"
     consent_domain: "family"
     max_fpl_pct: 130
-    source: "USDA FNS Income Eligibility; 7 CFR 245"
-    source_url: "https://www.cde.ca.gov/ds/sh/sn/"
+    source: "USDA FNS Child Nutrition Programs income eligibility guidelines, 91 FR 17932 (April 9, 2026), effective July 1, 2026 to June 30, 2027"
+    source_url: "https://www.federalregister.gov/documents/2026/04/09/2026-06842/child-nutrition-programs-income-eligibility-guidelines"
+    estimated_value:
+      description: "Free breakfast and lunch"
     conditions:
       - requires_school_age_children
     application:
@@ -263,54 +520,80 @@ programs:
     documents_needed:
       - "Application through school"
       - "Proof of income or CalFresh/CalWORKs certification"
-    processing_time: "10 school days"
-    notes: "CA provides universal free meals at many schools. Check first."
+    notes: "California provides universal free meals at many schools. Check first."
 
   reduced_lunch:
     name: "Reduced-Price School Meals"
-    description: "School meals at $0.30 or less."
+    description: "Reduced-price breakfast and lunch at school."
     category: "food"
     consent_domain: "family"
-    min_fpl_pct: 131
+    above_fpl_pct: 130
     max_fpl_pct: 185
-    source: "USDA FNS Income Eligibility; 7 CFR 245"
-    source_url: "https://www.cde.ca.gov/ds/sh/sn/"
+    source: "USDA FNS Child Nutrition Programs income eligibility guidelines, 91 FR 17932 (April 9, 2026), effective July 1, 2026 to June 30, 2027"
+    source_url: "https://www.federalregister.gov/documents/2026/04/09/2026-06842/child-nutrition-programs-income-eligibility-guidelines"
+    estimated_value:
+      description: "Reduced-price breakfast and lunch"
     conditions:
       - requires_school_age_children
     application:
+      url: "https://www.cde.ca.gov/ds/sh/sn/"
       phone: "Child's school office"
     documents_needed:
       - "Application through school"
       - "Proof of income"
-    processing_time: "10 school days"
 
   california_lifeline:
     name: "California Lifeline (Phone/Internet Discount)"
     description: "Discounted phone and internet service."
     category: "telecommunications"
     consent_domain: "transportation"
-    max_fpl_pct: 135
-    source: "CPUC General Order 153; FCC 47 CFR 54"
-    source_url: "https://www.californialifeline.com"
+    source: "CPUC California LifeLine income limits, Administrative Letter 11 (April 15, 2026), June 1, 2026 to May 31, 2027; General Order 153-A Sec. 5.2"
+    source_url: "https://www.cpuc.ca.gov/consumer-support/financial-assistance-savings-and-discounts/lifeline/california-lifeline-eligibility"
+    estimated_value:
+      description: "Discount of up to $19.00 a month on phone or internet service"
+      monthly_max: 19.0
     conditions: []
+    income_limit:
+      period: annual
+      by_household:
+        1: 24600
+        2: 33300
+        3: 42100
+        4: 50800
+      per_additional_person: 8700
     application:
       url: "https://www.californialifeline.com"
-      phone: "1-866-272-0349"
     documents_needed:
       - "Proof of income OR enrollment in qualifying program"
-    processing_time: "7-10 business days"
 
   childcare_subsidy:
     name: "Subsidized Childcare"
     description: "Financial help for childcare while working or in school."
     category: "childcare"
     consent_domain: "family"
-    max_fpl_pct: 185
-    source: "CDSS Alternative Payment Program; H&S Code §8220"
-    source_url: "https://rrnetwork.org"
+    verified: false
+    unverified_reason: "The 85%-of-state-median-income ceilings (for example $85,428 a year for 1-2 people) were read only on a City and County of San Francisco copy of the state table, not on a CDSS or CDE page. Ask your local Resource & Referral agency."
+    source: "CDSS-contracted child care programs, Family Income Eligibility FY 2026-27 (85% of state median income; CCTR column); CDSS Income Ranking Table 2026-2027"
+    source_url: "https://cdss.ca.gov/inforesources/child-care-and-development/fiscal-resources"
     conditions:
       - requires_dependents
       - requires_young_children
+    income_limit:
+      period: annual
+      fallback_reason: "No verified child care income ceiling is loaded for this household."
+      by_household:
+        1: 85428
+        2: 85428
+        3: 96648
+        4: 115632
+        5: 134136
+        6: 152640
+        7: 156108
+        8: 159576
+        9: 163044
+        10: 166512
+    estimated_value:
+      description: "Help paying for child care"
     application:
       url: "https://rrnetwork.org"
       phone: "Local Resource & Referral agency"
@@ -325,31 +608,66 @@ programs:
     description: "Monthly cash for aged, blind, or disabled with limited income."
     category: "cash_assistance"
     consent_domain: "financial"
-    max_fpl_pct: 100
-    source: "SSA Federal Benefit Rate + CA SSP; 42 USC 1382"
-    source_url: "https://www.ssa.gov/ssi"
+    source: "SSA POMS SI 01415.058, California tables, January 2026: federal benefit rate ($994 individual, $1,491 couple) plus California State Supplementary Payment; 42 USC 1382"
+    source_url: "https://secure.ssa.gov/poms.nsf/lnx/0501415058"
+    estimate_source: "SSA POMS SI 01415.058, California individual and couple levels for aged or disabled recipients, January 1, 2026 to December 31, 2026"
+    estimate_source_url: "https://secure.ssa.gov/poms.nsf/lnx/0501415058"
     conditions:
       - requires_ssi_eligible
+    income_limit:
+      period: monthly
+      exclusive: true
+      fallback_reason: "SSI payment levels are for one person or a couple. This tool screens households of 1 or 2 only."
+      by_household:
+        1: 1233.94
+        2: 2098.83
     application:
       url: "https://www.ssa.gov/ssi"
-      phone: "1-800-772-1213"
     documents_needed:
       - "Age 65+ OR disability/blindness documentation"
-      - "Resources under $2,000 individual / $3,000 couple"
+      - "Resources within the SSI limit"
       - "Social Security number"
-    processing_time: "3-6 months"
-    notes: "CAPI extends benefits to immigrants ineligible for federal SSI."
+    notes: "CAPI extends benefits to immigrants ineligible for federal SSI. A household of 2 is screened as a couple. Blind recipients have higher payment levels, and earned income is counted differently; neither is modeled."
 
   general_relief:
     name: "General Relief (County Cash Aid)"
     description: "Last-resort monthly cash. Amount varies by county."
     category: "cash_assistance"
     consent_domain: "financial"
-    max_fpl_pct: 100
-    county_specific: true
-    source: "County General Assistance; W&I Code §17000"
+    source: "County General Assistance; W&I Code §17000. Los Angeles County DPSS General Relief: net income must be below the maximum grant"
     source_url: "https://dpss.lacounty.gov/en/cash/gr.html"
+    estimate_source: "Los Angeles County DPSS General Relief maximum grant ($221 one person, $375 two applying together)"
+    estimate_source_url: "https://dpss.lacounty.gov/en/cash/gr.html"
+    county_specific: true
     conditions: []
+    income_limit:
+      period: monthly
+      exclusive: true
+      fallback_reason: "General Relief grants and income rules are set by each county. This tool has verified only Los Angeles County's maximum grant and income rule for households of 1 or 2. Contact your county social services office."
+      tables:
+        los_angeles:
+          by_household:
+            1: 221
+            2: 375
+        sacramento:
+          verified: false
+          unverified_reason: "Sacramento County's published single-adult grant ($326.64, two persons $437.70) was read, but its income rule was not. Contact the county."
+          by_household:
+            1: 326.64
+            2: 437.70
+        alameda:
+          verified: false
+          unverified_reason: "Alameda County's published grant ($336 single, $548 couple) was read, but its income rule was not. Contact the county."
+          by_household:
+            1: 336
+            2: 548
+        fresno:
+          verified: false
+          unverified_reason: "Fresno County's published maximum payable ($245 for 1, $400 for 2, $495 for 3) was read, but its income rule was not. Contact the county."
+          by_household:
+            1: 245
+            2: 400
+            3: 495
     application:
       phone: "County DPSS office"
       in_person: "County social services office"
@@ -358,5 +676,4 @@ programs:
       - "Proof of California residency"
       - "Proof of income and resources"
       - "Must apply for all other eligible benefits first"
-    processing_time: "30 days"
-    notes: "County-funded. Amounts and rules vary significantly."
+    notes: "County-funded. Amounts and rules vary significantly. Gross income is compared with the grant; counties count net income."
