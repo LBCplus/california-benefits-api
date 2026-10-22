@@ -309,6 +309,42 @@ class BenefitsScreeningTest < Minitest::Test
     refute_includes eligible_ids(monthly_income: 3336.17, household_size: 2, is_pregnant: true), "wic"
   end
 
+  def test_wic_eligible_with_a_newborn_only
+    assert_includes eligible_ids(monthly_income: 2000, household_size: 2, dependent_ages: [0]), "wic"
+  end
+
+  def test_wic_eligible_with_a_newborn_and_an_older_child
+    assert_includes eligible_ids(monthly_income: 2000, household_size: 3, dependent_ages: [0, 8]), "wic"
+  end
+
+  def test_newborn_counts_as_a_young_child
+    s = screening(household_size: 2, dependent_ages: [0])
+    assert s.send(:meets_condition?, "requires_young_children")
+  end
+
+  def test_newborn_is_not_a_school_age_child
+    s = screening(household_size: 2, dependent_ages: [0])
+    refute s.send(:meets_condition?, "requires_school_age_children")
+  end
+
+  def test_newborn_counts_toward_the_eitc_child_count
+    one = find_program(screening(monthly_income: 500, household_size: 2, dependent_ages: [0]), "eitc")
+    assert_equal 4427, one[:estimated_value][:federal_max]
+    two = find_program(screening(monthly_income: 500, household_size: 3, dependent_ages: [0, 0]), "eitc")
+    assert_equal 7316, two[:estimated_value][:federal_max]
+  end
+
+  def test_newborn_uses_the_one_child_eitc_income_limit
+    args = { household_size: 2, dependent_ages: [0] }
+    assert_includes eligible_ids(monthly_income: 4299.41, **args), "eitc"
+    refute_includes eligible_ids(monthly_income: 4299.42, **args), "eitc"
+  end
+
+  def test_nil_age_entries_are_ignored
+    s = screening(household_size: 2, dependent_ages: [nil])
+    refute s.send(:meets_condition?, "requires_young_children")
+  end
+
   def test_school_meals_split_at_130_fpl
     args = { household_size: 2, dependent_ages: [8] }
     at_limit = eligible_ids(monthly_income: 2344.33, **args)

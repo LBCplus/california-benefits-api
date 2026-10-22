@@ -36,7 +36,7 @@ class BenefitsScreening
     @is_pregnant = is_pregnant
     @has_disability = has_disability
     @is_employed = is_employed
-    @dependent_ages = Array(dependent_ages).map(&:to_i).reject(&:zero?)
+    @dependent_ages = Array(dependent_ages).compact.map(&:to_i)
     @housing_status = housing_status
     @immigration_status = immigration_status
     @warnings = []
