@@ -102,6 +102,10 @@ Update `config/california_programs.yml` when these publish:
 - **October 1:** CalFresh/SNAP allotments, deductions and income limits (FY2027 began October 1, 2026); CalWORKs maximum aid payment (up 1.8% on October 1, 2026); the LIHEAP income table for each federal fiscal year (the FFY2027 table was not yet published when this was written).
 - **January 1, 2027:** Covered California plan year 2027 applicable percentages and the 2026 poverty table as its basis; Medi-Cal work requirements and six-month renewals begin (see below).
 
+## Immigration Status
+
+Eligibility for several programs listed here, including CalFresh, Medi-Cal, Covered California financial help, Housing Choice Vouchers and SSI, also depends on immigration status, and federal law narrowed several of those categories in 2026 and 2027 (CalFresh from April 1, 2026, Medi-Cal from October 1, 2026, premium tax credits from January 1, 2027); this tool does not ask about or use immigration status, so a result can overstate eligibility, and only the administering agency decides.
+
 ## Not Modeled
 
 H.R. 1 (Public Law 119-21) Medi-Cal work and community engagement requirements (from January 1, 2027) and six-month renewals for expansion adults (redeterminations on or after January 1, 2027) are not modeled. A Medi-Cal result does not reflect either.
@@ -150,6 +154,7 @@ s.warnings
 ## Privacy
 
 - **No PII accepted.** Never names, SSNs, dates of birth, or addresses.
+- **No immigration status.** Never asked, used or stored.
 - **No data stored.** Stateless — inputs processed and discarded.
 - **No tracking.** No cookies, analytics, or user identification.
 

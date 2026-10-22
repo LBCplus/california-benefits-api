@@ -23,7 +23,6 @@ class BenefitsScreening
                  has_dependents: false, is_pregnant: false,
                  has_disability: false, is_employed: true,
                  dependent_ages: [], housing_status: nil,
-                 immigration_status: "documented",
                  config_path: nil)
     errors = validate_inputs(monthly_income, household_size, dependent_ages)
     raise ValidationError.new(errors) if errors.any?
@@ -38,7 +37,6 @@ class BenefitsScreening
     @is_employed = is_employed
     @dependent_ages = Array(dependent_ages).compact.map(&:to_i)
     @housing_status = housing_status
-    @immigration_status = immigration_status
     @warnings = []
 
     config_path ||= File.join(__dir__, "..", "config", "california_programs.yml")

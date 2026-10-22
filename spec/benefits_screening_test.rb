@@ -55,6 +55,11 @@ class BenefitsScreeningTest < Minitest::Test
     assert_match(/must be 0-17/, err.message)
   end
 
+  def test_immigration_status_is_not_an_input
+    assert_raises(ArgumentError) { screening(immigration_status: "documented") }
+    refute_includes screening.instance_variables, :@immigration_status
+  end
+
   def test_class_level_validation
     errors = BenefitsScreening.validate(monthly_income: nil, household_size: nil)
     assert_equal 2, errors.size
